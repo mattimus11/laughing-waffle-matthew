@@ -4,7 +4,7 @@ const app = express()
 console.log("whats up")
 
 app.get('/', function (req, res) {
-  res.sendFile("/Users/matthew/Desktop/laughing-waffle-matthew/index.html")
+  res.send("Hello from node")
 })
 
 app.listen(5500)
