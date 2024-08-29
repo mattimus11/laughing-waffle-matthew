@@ -1,9 +1,19 @@
 {
-  "scripts":{
+  "scripts": {
     "dev": "nodemon app.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "nodemon": "^3.1.4"
-  }
+  },
+  "name": "laughing-waffle-matthew",
+  "version": "1.0.0",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
