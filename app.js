@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
 
+app.use(express.static('./'))
+
 console.log("whats up")
 
 app.get('/', function (req, res) {
