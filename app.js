@@ -1,16 +1,21 @@
-const express = require('express')
+require('dotenv').config();
+const { configDotenv } = require('dotenv');
+const express = require('express');
+const req = require('express/lib/request');
+const res = require('express/lib/response');
 const app = express()
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = process.env.mongo_uri;
 app.set('view engine','ejs')
 app.use(express.static('./public/'))
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = process.env.uri;
+
 
 
 console.log("whats up")
 
-app.get('/', function (req, res) {
-  res.sendFile('/index.html')
-})
+//app.get('/', function (req, res) {
+  //res.sendFile('/index.html')
+//})
 
 
 //MONGODB CODE BELOW
@@ -26,27 +31,34 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
+     //Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // Send a ping to confirm a successful connection
+     //Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-    // Ensures that the client will close when you finish/error
+     //Ensures that the client will close when you finish/error
     await client.close();
   }
 }
 run().catch(console.dir);
 
+app.get('/mongo',async(req,res)=>{
 
+  console.log('in mongo');
+  await client.connect();
+  console.log("connected");
+  let result = await client.db("matts-db").collection("cool-collection").find({}).toArray();
+  console.log(result);
+})
 
 
 app.get('/ejs',(res,req)=>{
 
-  res.render('index', {
-    myServerVariable :  'my server variable'
+  res.render('mongo', {
+    mongoResults :  'mongo result'
   });
 
 })
 
-app.listen(5500)
+app.listen(3000)
