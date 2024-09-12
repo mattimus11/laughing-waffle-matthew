@@ -1,26 +1,16 @@
 require('dotenv').config();
-const { configDotenv } = require('dotenv');
 const express = require('express');
-const req = require('express/lib/request');
-const res = require('express/lib/response');
-const app = express()
+const app = express();
 const { MongoClient, ServerApiVersion } = require('mongodb');
+
 const uri = process.env.mongo_uri;
-app.set('view engine','ejs')
-app.use(express.static('./public/'))
 
+app.set('view engine', 'ejs');
+app.use(express.static('./public/'));
 
+console.log(uri);
 
-console.log("whats up")
-
-//app.get('/', function (req, res) {
-  //res.sendFile('/index.html')
-//})
-
-
-//MONGODB CODE BELOW
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+// MongoDB connection setup
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -29,36 +19,50 @@ const client = new MongoClient(uri, {
   }
 });
 
-async function run() {
+async function connectToMongoDB() {
   try {
-     //Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-     //Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-     //Ensures that the client will close when you finish/error
-    await client.close();
+    console.log("Successfully connected to MongoDB!");
+  } catch (err) {
+    console.error("Error connecting to MongoDB", err);
   }
 }
-run().catch(console.dir);
-
-app.get('/mongo',async(req,res)=>{
-
-  console.log('in mongo');
-  await client.connect();
-  console.log("connected");
-  let result = await client.db("matts-db").collection("cool-collection").find({}).toArray();
-  console.log(result);
-})
 
 
-app.get('/ejs',(res,req)=>{
+connectToMongoDB().catch(console.dir);
 
-  res.render('mongo', {
-    mongoResults :  'mongo result'
+app.get('/', (req, res) => {
+  res.render('index', {
+    myServerVariable: "Welcome to the homepage"
   });
+});
 
+app.get('/read', async (req, res) => {
+    await client.connect()
+    let result = await client.db("matts-db").collection("cool-collection")
+      .find({}).toArray();
+
+    console.log(result);
+
+    res.render('mongo', {
+      mongoResult: result
+    });
+});
+
+app.get('/insert',async(req,res)=>{
+
+  res.render('insert')
+
+  await client.connect()
+    let result = await client.db("matts-db").collection("cool-collection")
+      .insertOne({post:'harcoded'});
+    let result1 = await client.db("matts-db").collection("cool-collection")
+      .insertOne({post:'harcoded too'});
+
+    console.log(result);
 })
 
-app.listen(3000)
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});

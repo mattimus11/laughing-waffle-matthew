@@ -1,9 +1,10 @@
 <h1>see my mongoDB results</h1>
 
-<%=mongoResults %>
+<%=mongoResult %> 
 
-<%for(i=0;i++;i<mongoResults.length){
-   
-    console.log(mongoResults[i].post);
+<% for(i=0;i<mongoResult.length;i++){ %> 
 
-}%>
+    <p><%= mongoResult[i].post;%></p>
+     
+
+<% } %> 
