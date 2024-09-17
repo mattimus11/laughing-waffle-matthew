@@ -3,12 +3,13 @@
     "dev": "nodemon app.js"
   },
   "dependencies": {
+    "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.19.2",
+    "express": "^4.21.0",
     "mongo": "^0.1.0",
     "mongodb": "^6.8.0",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.5"
   },
   "name": "laughing-waffle-matthew",
   "version": "1.0.0",

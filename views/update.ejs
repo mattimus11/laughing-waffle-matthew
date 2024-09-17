@@ -1,6 +1,4 @@
-<!-- read from my mongo -->
-<h1>see my mongoDB results</h1>
-
+<h1> update the ejs </h1>
 
 <h3> my blog posts</h3> 
  <% for (var i=0; i< mongoResult.length; i++ ) { %>
@@ -8,10 +6,7 @@
     <%= mongoResult[i].post %> 
     <input type="submit" value="update"> 
   </form>
-  <form method="POST" action="/delete/<%= mongoResult[i]._id %>" style="display: inline-block">  
-    <input type="submit" value="delete"> 
-  </form>
   <br/>
 <% } %>
 
-<hr>
+<a href="/read">bak to the read endpotn</a>
