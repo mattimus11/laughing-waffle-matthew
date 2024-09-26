@@ -8,8 +8,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.0",
     "mongo": "^0.1.0",
-    "mongodb": "^6.8.0",
-    "nodemon": "^3.1.7"
+    "mongodb": "^6.8.0"
   },
   "name": "laughing-waffle-matthew",
   "version": "1.0.0",
