@@ -39,34 +39,32 @@ run().catch(console.dir);
 
 app.get('/', (req, res) => {
   res.render('index', {
-    myServerVariable: "Welcome to the homepage"
   });
 });
 
-app.get('/read', async (req, res) => {
+app.get('/ratings', async (req, res) => {
   await client.connect()
   let result = await client.db("matts-db").collection("cool-collection")
     .find({}).toArray();
 
   console.log(result);
 
-  res.render('mongo', {
+  res.render('ratings', {
     mongoResult: result
   });
 });
 
-app.get('/insert', async (req,res)=> {
+app.get("/insert",(req,res)=>{
+  res.render("insert")
+});
 
+app.post('/insert', async (req, res) => {
   console.log('in /insert');
-  //connect to db,
   await client.connect();
-  //point to the collection 
-  await client.db("matts-db").collection("cool-collection").insertOne({ post: '1'});
-  await client.db("matts-db").collection("cool-collection").insertOne({ post: '2'});  
-  //insert into it
-  res.render('insert');
+  await client.db("matts-db").collection("cool-collection").insertOne({ post: req.body.post });
+  res.redirect('/ratings');
+});
 
-}); 
 
 app.post('/update/:id', async (req,res)=>{
 
@@ -79,7 +77,7 @@ app.post('/update/:id', async (req,res)=>{
 )
 .then(result => {
   console.log(result); 
-  res.redirect('/read');
+  res.redirect('/ratings');
 })
 }); 
 
@@ -94,7 +92,7 @@ app.post('/delete/:id', async (req,res)=>{
 
 .then(result => {
   console.log(result); 
-  res.redirect('/read');
+  res.redirect('/ratings');
 })
 
   //insert into it
