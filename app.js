@@ -4,12 +4,14 @@ const app = express()
 const bodyParser = require('body-parser')
 const { urlencoded } = require('body-parser')
 const { ObjectId } = require('mongodb')
+const path = require('path')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://Matthew:${process.env.mongo_pwd}@cluster0.vza6k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-app.use(bodyParser.urlencoded({ extended: true }))
-app.set('view engine', 'ejs')
-app.use(express.static('./public/'))
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'ejs');
+
 
 console.log(uri);
 
@@ -23,65 +25,91 @@ const client = new MongoClient(uri, {
 });
 
 
+
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-    // Ensures that the client will close when you finish/error
     await client.close();
   }
 }
 run().catch(console.dir);
 
-app.get('/', (req, res) => {
-  res.render('index', {
-    myServerVariable: "Welcome to the homepage"
-  });
+app.get('/',async (req, res) => {
+  await client.connect(); 
+  const movies = await client.db("matts-db").collection("cool-collection")
+      .find() 
+      .sort({ rating: -1 }) 
+      .limit(5) 
+      .toArray(); 
+  
+  res.render('index', { movies });
 });
 
-app.get('/read', async (req, res) => {
+app.get('/ratings', async (req, res) => {
   await client.connect()
   let result = await client.db("matts-db").collection("cool-collection")
     .find({}).toArray();
 
   console.log(result);
 
-  res.render('mongo', {
+  res.render('ratings', {
     mongoResult: result
   });
 });
 
-app.get('/insert', async (req,res)=> {
+app.post('/add-rating', async (req, res) => {
+  const { movieName, rating } = req.body;
 
+  // Number not a string doofus
+  const numericRating = parseFloat(rating);
+
+  if (isNaN(numericRating) || numericRating < 1 || numericRating > 10) {
+      return res.status(400).send('Rating must be a number between 1 and 10.');
+  }
+
+  await client.db("matts-db").collection("cool-collection").insertOne({
+      post: movieName,
+      rating: numericRating // Save as a number
+  });
+
+  res.redirect('/ratings');
+});
+
+
+app.get("/insert",(req,res)=>{
+  res.render("insert")
+});
+
+app.post('/insert', async (req, res) => {
   console.log('in /insert');
-  //connect to db,
+
+  // Convert post to string, ensure rating is also a number if included
+  const numericRating = parseFloat(req.body.rating); // Ensure rating is handled if present
+
   await client.connect();
-  //point to the collection 
-  await client.db("matts-db").collection("cool-collection").insertOne({ post: '1'});
-  await client.db("matts-db").collection("cool-collection").insertOne({ post: '2'});  
-  //insert into it
-  res.render('insert');
+  await client.db("matts-db").collection("cool-collection").insertOne({ 
+      post: req.body.post,
+      rating: numericRating // Save as a number if rating is included
+  });
+  res.redirect('/ratings');
+});
 
-}); 
 
-app.post('/update/:id', async (req,res)=>{
+app.post('/update/:id', async (req, res) => {
+    const movieId = req.params.id;
+    const newRating = parseInt(req.body.newRating, 10);
 
-  console.log("req.parms.id: ", req.params.id)
+        await client.connect();
+        await client.db("matts-db").collection("cool-collection").updateOne(
+            { _id: new ObjectId(movieId) },
+            { $set: { rating: newRating } }
+        );
 
-  client.connect; 
-  const collection = client.db("matts-db").collection("cool-collection");
-  let result = await collection.findOneAndUpdate( 
-  {"_id": new ObjectId(req.params.id)}, { $set: {"post": "NEW POST" } }
-)
-.then(result => {
-  console.log(result); 
-  res.redirect('/read');
-})
-}); 
+        res.redirect('/ratings');
+      }); 
 
 app.post('/delete/:id', async (req,res)=>{
 
@@ -94,12 +122,12 @@ app.post('/delete/:id', async (req,res)=>{
 
 .then(result => {
   console.log(result); 
-  res.redirect('/read');
+  res.redirect('/ratings');
 })
 
-  //insert into it
+
+
 
 });
-
 
 app.listen(5500);
