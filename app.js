@@ -2,132 +2,134 @@ require('dotenv').config()
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
-const { urlencoded } = require('body-parser')
 const { ObjectId } = require('mongodb')
 const path = require('path')
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const PORT = process.env.PORT || 3000;
 const uri = `mongodb+srv://Matthew:${process.env.mongo_pwd}@cluster0.vza6k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 
+let client;
 
-console.log(uri);
+async function connectToDatabase() {
+  if (!client) {  // Only connect if client is undefined
+    client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    });
 
-// MongoDB connection setup
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-
-
-async function run() {
-  try {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    await client.close();
+    try {
+      await client.connect();
+      console.log('Connected to MongoDB');
+    } catch (err) {
+      console.error('Failed to connect to MongoDB:', err);
+      throw err;
+    }
   }
 }
-run().catch(console.dir);
 
-app.get('/',async (req, res) => {
-  await client.connect(); 
-  const movies = await client.db("matts-db").collection("cool-collection")
-      .find() 
-      .sort({ rating: -1 }) 
-      .limit(5) 
-      .toArray(); 
-  
-  res.render('index', { movies });
+async function getCollection() {
+  await connectToDatabase();  // Ensure the database is connected
+  return client.db("matts-db").collection("cool-collection");
+}
+
+app.get('/', async (req, res) => {
+  try {
+    const collection = await getCollection();
+    const movies = await collection.find().sort({ rating: -1 }).limit(5).toArray(); // Ensure sorting works properly
+    res.render('index', { movies });
+  } catch (err) {
+    console.error('Error fetching movies:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 app.get('/ratings', async (req, res) => {
-  await client.connect()
-  let result = await client.db("matts-db").collection("cool-collection")
-    .find({}).toArray();
-
-  console.log(result);
-
-  res.render('ratings', {
-    mongoResult: result
-  });
+  try {
+    const collection = await getCollection();
+    const result = await collection.find().toArray();
+    res.render('ratings', { mongoResult: result });
+  } catch (err) {
+    console.error('Error fetching ratings:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 app.post('/add-rating', async (req, res) => {
   const { movieName, rating } = req.body;
-
-  // Number not a string doofus
-  const numericRating = parseFloat(rating);
+  const numericRating = parseFloat(rating); // Convert to number
 
   if (isNaN(numericRating) || numericRating < 1 || numericRating > 10) {
-      return res.status(400).send('Rating must be a number between 1 and 10.');
+    return res.status(400).send('Rating must be a number between 1 and 10.');
   }
 
-  await client.db("matts-db").collection("cool-collection").insertOne({
+  try {
+    const collection = await getCollection();
+    await collection.insertOne({
       post: movieName,
-      rating: numericRating // Save as a number
-  });
-
-  res.redirect('/ratings');
+      rating: numericRating
+    });
+    res.redirect('/ratings');
+  } catch (err) {
+    console.error('Error adding rating:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-
-app.get("/insert",(req,res)=>{
-  res.render("insert")
+app.get("/insert", (req, res) => {
+  res.render("insert");
 });
 
 app.post('/insert', async (req, res) => {
-  console.log('in /insert');
+  const numericRating = parseFloat(req.body.rating); // Handle rating if present
 
-  // Convert post to string, ensure rating is also a number if included
-  const numericRating = parseFloat(req.body.rating); // Ensure rating is handled if present
-
-  await client.connect();
-  await client.db("matts-db").collection("cool-collection").insertOne({ 
+  try {
+    const collection = await getCollection();
+    await collection.insertOne({
       post: req.body.post,
-      rating: numericRating // Save as a number if rating is included
-  });
-  res.redirect('/ratings');
+      rating: numericRating // Ensure rating is saved as a number
+    });
+    res.redirect('/ratings');
+  } catch (err) {
+    console.error('Error inserting movie:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
-
 
 app.post('/update/:id', async (req, res) => {
-    const movieId = req.params.id;
-    const newRating = parseInt(req.body.newRating, 10);
+  const movieId = req.params.id;
+  const newRating = parseFloat(req.body.newRating); // Convert to number
 
-        await client.connect();
-        await client.db("matts-db").collection("cool-collection").updateOne(
-            { _id: new ObjectId(movieId) },
-            { $set: { rating: newRating } }
-        );
-
-        res.redirect('/ratings');
-      }); 
-
-app.post('/delete/:id', async (req,res)=>{
-
-  console.log("req.parms.id: ", req.params.id)
-
-  client.connect; 
-  const collection = client.db("matts-db").collection("cool-collection");
-  let result = await collection.findOneAndDelete( 
-  {"_id": new ObjectId(req.params.id)})
-
-.then(result => {
-  console.log(result); 
-  res.redirect('/ratings');
-})
-
-
-
-
+  try {
+    const collection = await getCollection();
+    await collection.updateOne(
+      { _id: new ObjectId(movieId) },
+      { $set: { rating: newRating } }
+    );
+    res.redirect('/ratings');
+  } catch (err) {
+    console.error('Error updating rating:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-app.listen(5500);
+app.post('/delete/:id', async (req, res) => {
+  try {
+    const collection = await getCollection();
+    await collection.findOneAndDelete({ _id: new ObjectId(req.params.id) });
+    res.redirect('/ratings');
+  } catch (err) {
+    console.error('Error deleting movie:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running & listening on port ${PORT}`);
+});
